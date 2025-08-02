@@ -2,49 +2,39 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import { ethers } from 'ethers';
 import { createLogger } from './utils/logger';
-import { CrossChainResolver } from './resolver/CrossChainResolver';
-import { OrderMonitor } from './services/OrderMonitor';
-import { ProfitabilityAnalyzer } from './services/ProfitabilityAnalyzer';
-import { EscrowExecutor } from './services/EscrowExecutor';
-import { setupRoutes } from './routes';
+import { Resolver } from './resolver/resolver';
 
 dotenv.config();
 
-const logger = createLogger('ResolverMain');
+const logger = createLogger('Main');
 
-async function startResolver() {
+async function main() {
   try {
-    // Initialize Express app
     const app = express();
-    const port = process.env.PORT || 3001;
+    const port = process.env.PORT || 3002;
 
-    // Middleware
     app.use(helmet());
     app.use(cors());
-    app.use(express.json({ limit: '10mb' }));
-    app.use(express.urlencoded({ extended: true }));
+    app.use(express.json());
+    
+    const contractAddress = process.env.RESOLVER_CONTRACT_ADDRESS;
+    if (!contractAddress) {
+      throw new Error('RESOLVER_CONTRACT_ADDRESS environment variable is required');
+    }
 
-    // Initialize resolver components
-    logger.info('🚀 Initializing Cross-Chain Resolver...');
+    logger.info('Initializing resolver');
     
-    const profitabilityAnalyzer = new ProfitabilityAnalyzer();
-    const escrowExecutor = new EscrowExecutor();
-    const orderMonitor = new OrderMonitor();
-    
-    const resolver = new CrossChainResolver(
-      orderMonitor,
-      profitabilityAnalyzer, 
-      escrowExecutor
+    const privateKeys = new Map <number | string, string> ([
+      [11155111, process.env.SEPOLIA_PRIVATE_KEY!],
+      ['pion-1', process.env.COSMOS_MNEMONIC!]
+    ]);
+
+    const resolver = new Resolver(
+     privateKeys
     );
 
-    // Initialize all services
-    await resolver.initialize();
-    
-    // Setup API routes
-    setupRoutes(app, resolver);
-
-    // Health check
     app.get('/health', (req, res) => {
       res.json({ 
         status: 'healthy', 
@@ -53,27 +43,23 @@ async function startResolver() {
       });
     });
 
-    // Start server
     app.listen(port, () => {
-      logger.info(`🌉 Cross-Chain Resolver running on port ${port}`);
-      logger.info(`📊 Monitoring orders: ${process.env.FRONTEND_URL}/api/orders`);
-      logger.info(`⚡ Ready to resolve EVM ↔ Cosmos swaps`);
+      logger.info(`Server running on port ${port}`);
     });
 
-    // Start order monitoring
-    resolver.startMonitoring();
+    await resolver.start();
+    logger.info('Resolver monitoring for orders');
 
-    // Graceful shutdown
     process.on('SIGINT', async () => {
-      logger.info('🛑 Shutting down resolver...');
-      await resolver.shutdown();
+      logger.info('Shutting down');
+      await resolver.stop();
       process.exit(0);
     });
 
   } catch (error) {
-    logger.error('❌ Failed to start resolver:', error);
+    logger.error('Failed to start:', error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }
 
-startResolver(); 
+main(); 
