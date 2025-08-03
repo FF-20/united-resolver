@@ -13,9 +13,9 @@ async function main() {
     throw new Error(`Limit Order Protocol not deployed on chainId ${network.chainId}`);
   }
 
-  console.log(`Deploying Resolver to ${network.name} (${network.chainId})`);
+  console.log(`Deploying Resolver to Sepolia testnet (${network.chainId})`);
   console.log(`Deployer: ${deployer.address}`);
-  console.log(`LOP Address: ${lopAddress}`);
+  console.log(`Sepolia LOP Address: ${lopAddress}`);
 
   const Resolver = await ethers.getContractFactory("Resolver");
   const resolver = await Resolver.deploy(lopAddress, deployer.address);
