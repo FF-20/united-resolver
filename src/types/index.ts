@@ -178,10 +178,10 @@ export interface fillOrderArgs {
 
 export interface Swap {
     immutables: Immutables,
-    SrcEscrow: string,
-    DstEscrow: string,
+    srcEscrow: string,
+    dstEscrow: string,
     chainId: number | string,
     status: 'active' | 'completed'
     createdAt: number,
-    updateAt: number
+    updateAt?: number
 }

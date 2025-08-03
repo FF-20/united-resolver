@@ -23,9 +23,9 @@ class OrderMonitorService {
             return;
         }
 
-        this.pollInterval = setInterval(() => {
+        this.pollInterval = setInterval(async () => {
             // Look at the swap timelock.
-            
+            await this.resolver.checkAndHandleTimeout()
 
         }, this.pollIntervalMs);
     }
